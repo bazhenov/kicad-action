@@ -3,7 +3,10 @@ on: [push]
 jobs:
   test_job:
     runs-on: ubuntu-latest
-    name: A job to test this action
+    strategy:
+      matrix:
+        kicad_version: ["9.0", "9.0.6"]
+    name: Test with KiCad ${{ matrix.kicad_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -13,6 +16,7 @@ jobs:
         uses: ./
         if: '!cancelled()'
         with:
+          kicad_version: ${{ matrix.kicad_version }}
           kicad_sch: test/test.kicad_sch
           sch_pdf: true
           sch_bom: true
@@ -26,7 +30,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() && steps.production.conclusion == 'success' }}
         with:
-          name: Production files
+          name: Production files (KiCad ${{ matrix.kicad_version }})
           path: |
             ${{ github.workspace }}/test/sch.pdf
             ${{ github.workspace }}/test/bom.csv
@@ -38,6 +42,7 @@ jobs:
         uses: ./
         if: '!cancelled()'
         with:
+          kicad_version: ${{ matrix.kicad_version }}
           kicad_sch: test/test.kicad_sch
           sch_erc: true
           report_format: json
@@ -48,6 +53,7 @@ jobs:
         uses: ./
         if: '!cancelled()'
         with:
+          kicad_version: ${{ matrix.kicad_version }}
           kicad_pcb: test/test.kicad_pcb
           pcb_drc: true
 
@@ -56,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ failure() &&  steps.erc.conclusion == 'failure' }}
         with:
-          name: erc.rpt
+          name: erc.rpt (KiCad ${{ matrix.kicad_version }})
           path: ${{ github.workspace }}/test/erc.rpt
 
       # Upload DRC report only if DRC failed
@@ -64,6 +70,5 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ failure() && steps.drc.conclusion == 'failure' }}
         with:
-          name: drc.rpt
+          name: drc.rpt (KiCad ${{ matrix.kicad_version }})
           path: ${{ github.workspace }}/test/drc.rpt
-

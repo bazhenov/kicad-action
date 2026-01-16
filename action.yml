@@ -2,23 +2,26 @@ name: 'KiCad Action'
 description: 'Automate KiCad tasks, e.g. check ERC/DRC on pull requests or generate production files for releases'
 
 inputs:
+  kicad_version:
+    description: 'KiCad version to use (Docker image tag)'
+    default: '9.0'
   kicad_sch:
     description: 'Path to .kicad_sch file'
   sch_erc:
     description: 'Whether to run ERC on the schematic'
-    default: false
+    default: 'false'
   sch_erc_file:
     description: 'Output filename of ERC report'
     default: 'erc.rpt'
   sch_pdf:
     description: 'Whether to generate PDF from schematic'
-    default: false
+    default: 'false'
   sch_pdf_file:
     description: 'Output filename of PDF schematic'
     default: 'sch.pdf'
   sch_bom:
     description: 'Whether to generate BOM from schematic'
-    default: false
+    default: 'false'
   sch_bom_file:
     description: 'Output filename of BOM'
     default: 'bom.csv'
@@ -36,35 +39,65 @@ inputs:
     description: 'Path to .kicad_pcb file'
   pcb_drc:
     description: 'Whether to run DRC on the PCB'
-    default: false
+    default: 'false'
   pcb_drc_file:
     description: 'Output filename for DRC report'
     default: 'drc.rpt'
   pcb_gerbers:
     description: 'Whether to generate Gerbers from PCB'
-    default: false
+    default: 'false'
   pcb_gerbers_file:
     description: 'Output filename of Gerbers ZIP'
     default: 'gbr.zip'
   pcb_image:
     description: 'Whether to render the PCB image'
-    default: false
+    default: 'false'
   pcb_image_path:
     description: 'Where to put the top.png and bottom.png'
     default: 'images'
   pcb_model:
     description: 'Whether to export the PCB model'
-    default: false
+    default: 'false'
   pcb_model_file:
     description: 'Output filename of PCB model'
     default: 'pcb.step'
   pcb_model_flags:
     description: 'Flags to add when exporting STEP files'
-    default: '--no-unspecified --no-dnp --include-tracks  --include-pads  --include-zones'
-  
+    default: '--no-unspecified --no-dnp --include-tracks --include-pads --include-zones'
+
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
+  using: 'composite'
+  steps:
+    - name: Run KiCad Action
+      shell: bash
+      run: |
+        docker run --rm \
+          --user "$(id -u):$(id -g)" \
+          -v "$GITHUB_WORKSPACE:/github/workspace" \
+          -v "${{ github.action_path }}/entrypoint.sh:/entrypoint.sh:ro" \
+          -w /github/workspace \
+          -e HOME="/tmp" \
+          -e INPUT_KICAD_SCH="${{ inputs.kicad_sch }}" \
+          -e INPUT_SCH_ERC="${{ inputs.sch_erc }}" \
+          -e INPUT_SCH_ERC_FILE="${{ inputs.sch_erc_file }}" \
+          -e INPUT_SCH_PDF="${{ inputs.sch_pdf }}" \
+          -e INPUT_SCH_PDF_FILE="${{ inputs.sch_pdf_file }}" \
+          -e INPUT_SCH_BOM="${{ inputs.sch_bom }}" \
+          -e INPUT_SCH_BOM_FILE="${{ inputs.sch_bom_file }}" \
+          -e INPUT_SCH_BOM_PRESET="${{ inputs.sch_bom_preset }}" \
+          -e INPUT_REPORT_FORMAT="${{ inputs.report_format }}" \
+          -e INPUT_KICAD_PCB="${{ inputs.kicad_pcb }}" \
+          -e INPUT_PCB_DRC="${{ inputs.pcb_drc }}" \
+          -e INPUT_PCB_DRC_FILE="${{ inputs.pcb_drc_file }}" \
+          -e INPUT_PCB_GERBERS="${{ inputs.pcb_gerbers }}" \
+          -e INPUT_PCB_GERBERS_FILE="${{ inputs.pcb_gerbers_file }}" \
+          -e INPUT_PCB_IMAGE="${{ inputs.pcb_image }}" \
+          -e INPUT_PCB_IMAGE_PATH="${{ inputs.pcb_image_path }}" \
+          -e INPUT_PCB_MODEL="${{ inputs.pcb_model }}" \
+          -e INPUT_PCB_MODEL_FILE="${{ inputs.pcb_model_file }}" \
+          -e INPUT_PCB_MODEL_FLAGS="${{ inputs.pcb_model_flags }}" \
+          kicad/kicad:${{ inputs.kicad_version }} \
+          /entrypoint.sh
 
 branding:
   icon: 'zap'
